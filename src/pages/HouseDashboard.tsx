@@ -42,7 +42,6 @@ export default function HouseDashboard() {
   });
   const [activeTab, setActiveTab] = useState<'games' | 'players'>('games');
 
-  // Get house players
   const players = getUsersByHouse(user?.email || '');
 
   useEffect(() => {
@@ -127,7 +126,6 @@ export default function HouseDashboard() {
     }
   };
 
-  // Group leagues by sport
   const sportGroups = leagues.reduce((acc: { [key: string]: League[] }, league) => {
     if (!acc[league.sport]) {
       acc[league.sport] = [];
@@ -188,7 +186,6 @@ export default function HouseDashboard() {
         {activeTab === 'games' ? (
           <div className="px-4 py-6 sm:px-0">
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              {/* Sports and Leagues Filter */}
               <div className="lg:col-span-1">
                 <div className="bg-white rounded-lg shadow p-6">
                   <h2 className="text-lg font-medium text-gray-900 mb-4">Sports & Leagues</h2>
@@ -244,7 +241,6 @@ export default function HouseDashboard() {
                   </div>
                 </div>
 
-                {/* Most Bet Games */}
                 <div className="mt-6 bg-white rounded-lg shadow p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
@@ -298,7 +294,6 @@ export default function HouseDashboard() {
                 </div>
               </div>
 
-              {/* Available Games and Odds Form */}
               <div className="lg:col-span-2 space-y-6">
                 {showOddsForm && selectedGame ? (
                   <div className="bg-white rounded-lg shadow">
@@ -418,7 +413,6 @@ export default function HouseDashboard() {
         ) : (
           <div className="px-4 py-6 sm:px-0">
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-              {/* Player Management */}
               <div className="lg:col-span-1">
                 <div className="bg-white rounded-lg shadow p-6">
                   <div className="flex items-center justify-between mb-6">
@@ -432,7 +426,6 @@ export default function HouseDashboard() {
                     </button>
                   </div>
 
-                  {/* Add Player Form */}
                   {showAddPlayer && (
                     <form onSubmit={handleAddPlayer} className="mb-6 p-4 border rounded-lg bg-gray-50">
                       <div className="space-y-4">
@@ -485,7 +478,6 @@ export default function HouseDashboard() {
                     </form>
                   )}
 
-                  {/* Daily Statistics */}
                   <div className="space-y-4">
                     <div className="p-4 bg-green-50 rounded-lg">
                       <div className="flex items-center">
@@ -509,7 +501,6 @@ export default function HouseDashboard() {
                 </div>
               </div>
 
-              {/* Players List */}
               <div className="lg:col-span-3">
                 <div className="bg-white rounded-lg shadow">
                   <div className="px-4 py-5 sm:p-6">
@@ -525,7 +516,7 @@ export default function HouseDashboard() {
 
                         return (
                           <div key={player.email} className="border rounded-lg p-6">
-                            <div className="flex justify-between items-start mb-4">
+                            <div className="flex justify-between items-start mb-6">
                               <div>
                                 <h3 className="text-lg font-medium text-gray-900">{player.name}</h3>
                                 <p className="text-sm text-gray-500">{player.email}</p>
@@ -538,65 +529,117 @@ export default function HouseDashboard() {
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-4 mb-4">
-                              <div className="bg-gray-50 p-4 rounded-lg">
-                                <p className="text-sm text-gray-500">Today's Bets</p>
-                                <p className="text-lg font-semibold">{todayBets.length}</p>
+                            {/* Bets Summary */}
+                            <div className="grid grid-cols-3 gap-4 mb-6 text-center">
+                              <div className="bg-gray-50 py-2 px-4 rounded-lg">
+                                <p className="text-sm text-gray-600">Today's Bets</p>
+                                <p className="text-lg font-medium">{todayBets.length}</p>
                               </div>
-                              <div className="bg-green-50 p-4 rounded-lg">
+                              <div className="bg-green-50 py-2 px-4 rounded-lg">
                                 <p className="text-sm text-green-600">Won</p>
-                                <p className="text-lg font-semibold text-green-700">{wonBets.length}</p>
+                                <p className="text-lg font-medium text-green-700">{wonBets.length}</p>
                               </div>
-                              <div className="bg-red-50 p-4 rounded-lg">
+                              <div className="bg-red-50 py-2 px-4 rounded-lg">
                                 <p className="text-sm text-red-600">Lost</p>
-                                <p className="text-lg font-semibold text-red-700">{lostBets.length}</p>
+                                <p className="text-lg font-medium text-red-700">{lostBets.length}</p>
                               </div>
                             </div>
 
-                            {todayBets.length > 0 && (
-                              <div className="space-y-3">
-                                <h4 className="text-sm font-medium text-gray-900">Today's Bets</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  {todayBets.map((bet) => {
+                            {/* Bets List */}
+                            <div className="space-y-2">
+                              <h4 className="text-sm font-medium text-gray-900 mb-4">Today's Bets</h4>
+                              <div className="grid grid-cols-2 gap-4">
+                                {/* Winning Bets */}
+                                <div className="space-y-2">
+                                  {wonBets.map((bet) => {
                                     const game = games.find(g => g.id === bet.gameId);
                                     if (!game) return null;
 
                                     return (
                                       <div
                                         key={bet.id}
-                                        className={`flex items-center p-3 rounded-lg ${
-                                          bet.status === 'won'
-                                            ? 'bg-green-50 border border-green-200'
-                                            : 'bg-red-50 border border-red-200'
-                                        }`}
+                                        className="flex items-center justify-between bg-green-50 border border-green-100 rounded-lg p-3"
                                       >
-                                        <CircleDot className={`h-4 w-4 mr-3 ${
-                                          bet.status === 'won' ? 'text-green-500' : 'text-red-500'
-                                        }`} />
-                                        <div className="flex-1">
-                                          <p className="text-sm font-medium">
-                                            {game.homeTeam} vs {game.awayTeam}
-                                          </p>
-                                          <p className="text-xs text-gray-500">
-                                            Bet: ${bet.amount} @ {bet.odds}
-                                          </p>
+                                        <div className="flex items-center space-x-2">
+                                          <CircleDot className="h-4 w-4 text-green-500" />
+                                          <span className="text-sm font-medium">{game.homeTeam}</span>
                                         </div>
-                                        <div className="text-right">
-                                          <p className={`text-sm font-medium ${
-                                            bet.status === 'won' ? 'text-green-600' : 'text-red-600'
-                                          }`}>
-                                            {bet.status === 'won' 
-                                              ? `+$${(bet.amount * bet.odds).toFixed(2)}`
-                                              : `-$${bet.amount}`
-                                            }
-                                          </p>
+                                        <span className="text-sm font-medium text-green-600">+${(bet.amount * bet.odds).toFixed(2)}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* Losing Bets */}
+                                <div className="space-y-2">
+                                  {lostBets.map((bet) => {
+                                    const game = games.find(g => g.id === bet.gameId);
+                                    if (!game) return null;
+
+                                    return (
+                                      <div
+                                        key={bet.id}
+                                        className="flex items-center justify-between bg-red-50 border border-red-100 rounded-lg p-3"
+                                      >
+                                        <div className="flex items-center space-x-2">
+                                          <CircleDot className="h-4 w-4 text-red-500" />
+                                          <span className="text-sm font-medium">{game.homeTeam}</span>
                                         </div>
+                                        <span className="text-sm font-medium text-red-600">-${bet.amount}</span>
                                       </div>
                                     );
                                   })}
                                 </div>
                               </div>
-                            )}
+
+                              {/* Calculations */}
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="mt-4 space-y-2">
+                                  <div className="flex justify-end items-center bg-gray-50 rounded-lg px-3 py-2">
+                                    <span className="text-sm text-gray-600">
+                                      $6000
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-end items-center bg-gray-50 rounded-lg px-3 py-2">
+                                    <span className="text-sm text-gray-600">
+                                      (+2%) $350
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-end items-center bg-gray-50 rounded-lg px-3 py-2">
+                                    <span className="text-sm text-gray-600">
+                                      -$1500
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-end items-center bg-green-50 rounded-lg px-3 py-2">
+                                    <span className="text-sm text-green-600">
+                                      $5850
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="mt-4 space-y-2">
+                                  <div className="flex justify-between items-center bg-red-50 rounded-lg px-3 py-2">
+                                    <span className="text-sm text-red-600">
+                                      $1500
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+
+                              {/*Final*/}
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="mt-4 space-y-2">
+                                  <div className="flex justify-between items-center bg-red-50 rounded-lg px-3 py-2">
+                                    <span className="text-sm text-red-600">
+                                      $1500
+                                    </span>
+                                  </div>
+                                </div>
+
+                              </div>
+
+                            </div>
                           </div>
                         );
                       })}
