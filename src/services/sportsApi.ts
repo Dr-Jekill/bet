@@ -54,10 +54,10 @@ const generateScore = (sport: string, status: string) => {
   if (sport === 'basketball') {
     score.periods = [
       { period: '1Q', home: randomScore(), away: randomScore() },
-      { period: '2Q', home: randomScore(), away: randomScore() },
+      //{ period: '2Q', home: randomScore(), away: randomScore() },
       { period: 'MT', home: score.home, away: score.away },
-      { period: '3Q', home: randomScore(), away: randomScore() },
-      { period: '4Q', home: randomScore(), away: randomScore() }
+      //{ period: '3Q', home: randomScore(), away: randomScore() },
+      { period: 'G', home: randomScore(), away: randomScore() }
     ];
   } else if (sport === 'baseball') {
     score.periods = Array.from({ length: 9 }, (_, i) => ({
@@ -65,10 +65,17 @@ const generateScore = (sport: string, status: string) => {
       home: randomScore(),
       away: randomScore()
     }));
+    score.periods = [
+      { period: '5to', home: randomScore(), away: randomScore() },
+      //{ period: '2Q', home: randomScore(), away: randomScore() },
+      //{ period: 'MT', home: score.home, away: score.away },
+      //{ period: '3Q', home: randomScore(), away: randomScore() },
+      { period: 'G', home: randomScore(), away: randomScore() }
+    ];
   } else if (sport === 'football') {
     score.periods = [
-      { period: '45min', home: randomScore(), away: randomScore() },
-      { period: '90min', home: score.home, away: score.away }
+      { period: 'MT', home: randomScore(), away: randomScore() },
+      { period: 'G', home: score.home, away: score.away }
     ];
   }
 
@@ -81,11 +88,11 @@ const getCurrentPeriod = (sport: string, status: string) => {
 
   switch (sport) {
     case 'basketball':
-      return ['1Q', '2Q', 'MT', '3Q', '4Q'][Math.floor(Math.random() * 5)];
+      return ['1Q', 'MT', 'G'][Math.floor(Math.random() * 5)];
     case 'baseball':
-      return `${Math.floor(Math.random() * 9 + 1)}`;
+      return ['MT', 'G'][Math.floor(Math.random() * 5)];
     case 'football':
-      return Math.random() > 0.5 ? '45min' : '90min';
+      return Math.random() > 0.5 ? 'MT' : 'G';
     default:
       return undefined;
   }

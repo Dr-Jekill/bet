@@ -6,6 +6,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import HouseDashboard from './pages/HouseDashboard';
 import PlayerDashboard from './pages/PlayerDashboard';
 import MostBetGames from './pages/house/MostBetGames';
+import Bets from './pages/house/Bets';
 import Players from './pages/house/Players';
 
 const ProtectedRoute: React.FC<{
@@ -47,6 +48,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['house']}>
               <MostBetGames />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/house/bets"
+          element={
+            <ProtectedRoute allowedRoles={['house']}>
+              <Bets />
             </ProtectedRoute>
           }
         />
