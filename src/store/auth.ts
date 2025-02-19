@@ -31,6 +31,14 @@ const initialUsers: User[] = [
     createdAt: new Date().toISOString()
   },
   { 
+    email: 'house2@game.cu', 
+    password: 'house123', 
+    role: 'house', 
+    name: 'House Manager',
+    subscriptionPaid: false,
+    createdAt: new Date().toISOString()
+  },
+  { 
     email: 'player@user.cu', 
     password: 'player123', 
     role: 'player', 
