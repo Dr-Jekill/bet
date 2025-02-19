@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../../store/auth';
 import { useGameStore } from '../../store/games';
-import { DollarSign, FolderRoot as Football, Baseline as Baseball, ShoppingBasket as Basketball } from 'lucide-react';
+import { DollarSign, FolderRoot as Football, Baseline as Baseball, ShoppingBasket as Basketball, Bell } from 'lucide-react';
 import type { Game, Bet } from '../../types';
 
 type PendingBet = {
@@ -17,8 +17,32 @@ export default function PlayerGames() {
   const { games, bets, placeBet } = useGameStore();
   const [selectedSport, setSelectedSport] = useState<Game['sport'] | 'all'>('all');
   const [pendingBets, setPendingBets] = useState<PendingBet[]>([]);
+  const [lastGameCount, setLastGameCount] = useState(games.length);
+  const [newGamesCount, setNewGamesCount] = useState(0);
+  const [showNewGamesNotification, setShowNewGamesNotification] = useState(false);
 
   const userBets = bets.filter(bet => bet.userId === user?.email);
+
+  const checkForNewGames = useCallback(() => {
+    const currentGameCount = games.length;
+    if (currentGameCount > lastGameCount) {
+      const newCount = currentGameCount - lastGameCount;
+      setNewGamesCount(newCount);
+      setShowNewGamesNotification(true);
+    }
+  }, [games.length, lastGameCount]);
+
+  const handleViewNewGames = () => {
+    setLastGameCount(games.length);
+    setShowNewGamesNotification(false);
+    setNewGamesCount(0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    const interval = setInterval(checkForNewGames, 5000); // Check every 5 seconds
+    return () => clearInterval(interval);
+  }, [checkForNewGames]);
 
   const filteredGames = games.filter(game => 
     selectedSport === 'all' || game.sport === selectedSport
@@ -61,6 +85,22 @@ export default function PlayerGames() {
 
   return (
     <div className="space-y-6">
+      {/* New Games Notification */}
+      {showNewGamesNotification && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <div className="bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-3">
+            <Bell className="h-5 w-5" />
+            <span>{newGamesCount} new games available!</span>
+            <button
+              onClick={handleViewNewGames}
+              className="ml-4 px-3 py-1 bg-white text-indigo-600 rounded-md text-sm font-medium hover:bg-indigo-50"
+            >
+              View Now
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Sport Filter */}
       <div className="bg-white p-4 rounded-lg shadow-sm">
         <div className="flex space-x-4">
@@ -116,6 +156,7 @@ export default function PlayerGames() {
           {filteredGames.map((game) => {
             const betStatus = getGameBetStatus(game.id);
             const pendingBet = pendingBets.find(bet => bet.gameId === game.id);
+            const isNewGame = games.indexOf(game) >= lastGameCount;
 
             return (
               <div
@@ -126,8 +167,14 @@ export default function PlayerGames() {
                     betStatus === 'lost' ? 'border-red-500' :
                     'border-yellow-500'
                   ) : ''
-                }`}
+                } ${isNewGame ? 'animate-pulse ring-2 ring-indigo-500' : ''}`}
               >
+                {isNewGame && (
+                  <div className="absolute -top-2 -right-2 bg-indigo-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                    New
+                  </div>
+                )}
+
                 {betStatus && (
                   <div className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium ${
                     betStatus === 'won' ? 'bg-green-100 text-green-800' :
@@ -165,8 +212,8 @@ export default function PlayerGames() {
                       </div>
                     </div>
                     <div className="text-sm text-gray-500">
-                      <p>Over/Under: {game.odds.fullGame.overUnder.value}</p>
-                      <p>Over: {game.odds.fullGame.overUnder.over} | Under: {game.odds.fullGame.overUnder.under}</p>
+                      <p>Over/Under: {game.odds.fullGame.overUnderValue}</p>
+                      <p>Odds: {game.odds.fullGame.odds}</p>
                     </div>
                   </div>
 
@@ -188,17 +235,17 @@ export default function PlayerGames() {
                           defaultValue=""
                         >
                           <option value="" disabled>Select bet...</option>
-                          <option value={`home|${game.odds.fullGame.home}`}>
-                            Home ({game.odds.fullGame.home})
+                          <option value={`home|${game.odds.fullGame.odds}`}>
+                            Home ({game.odds.fullGame.odds})
                           </option>
-                          <option value={`away|${game.odds.fullGame.away}`}>
-                            Away ({game.odds.fullGame.away})
+                          <option value={`away|${game.odds.fullGame.odds}`}>
+                            Away ({game.odds.fullGame.odds})
                           </option>
-                          <option value={`over|${game.odds.fullGame.overUnder.over}`}>
-                            Over {game.odds.fullGame.overUnder.value} ({game.odds.fullGame.overUnder.over})
+                          <option value={`over|${game.odds.fullGame.odds}`}>
+                            Over {game.odds.fullGame.overUnderValue}
                           </option>
-                          <option value={`under|${game.odds.fullGame.overUnder.under}`}>
-                            Under {game.odds.fullGame.overUnder.value} ({game.odds.fullGame.overUnder.under})
+                          <option value={`under|${game.odds.fullGame.odds}`}>
+                            Under {game.odds.fullGame.overUnderValue}
                           </option>
                         </select>
                       </div>
@@ -208,6 +255,12 @@ export default function PlayerGames() {
               </div>
             );
           })}
+
+          {filteredGames.length === 0 && (
+            <div className="text-center py-8 bg-white rounded-lg">
+              <p className="text-gray-500">No games available for the selected sport.</p>
+            </div>
+          )}
         </div>
 
         {/* Betting Slip */}
