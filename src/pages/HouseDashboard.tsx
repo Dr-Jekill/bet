@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 import { useGameStore } from '../store/games';
 import { sportsApi, type ApiGame } from '../services/sportsApi';
+import { Package } from 'lucide-react';
 import { 
   LogOut, 
   Plus, 
@@ -166,6 +167,17 @@ export default function HouseDashboard() {
                   <Users className="h-4 w-4 mr-2" />
                   Players
                 </button>
+                <Link
+                  to="/house/players"
+                  className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                    location.pathname === '/house/players'
+                      ? 'text-indigo-600 bg-indigo-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Players
+                </Link>
               </div>
             </div>
             <div className="flex items-center">
@@ -618,7 +630,7 @@ export default function HouseDashboard() {
                                 </div>
 
                                 <div className="mt-4 space-y-2">
-                                  <div className="flex justify-between items-center bg-red-50 rounded-lg px-3 py-2">
+                                  <div className="flex  justify-end items-center bg-red-50 rounded-lg px-3 py-2">
                                     <span className="text-sm text-red-600">
                                       $1500
                                     </span>
@@ -630,8 +642,8 @@ export default function HouseDashboard() {
                               {/*Final*/}
                               <div className="grid grid-cols-2 gap-4">
                                 <div className="mt-4 space-y-2">
-                                  <div className="flex justify-between items-center bg-red-50 rounded-lg px-3 py-2">
-                                    <span className="text-sm text-red-600">
+                                  <div className="flex  justify-end items-center bg-green-50 rounded-lg px-3 py-2">
+                                    <span className="text-sm text-green-600">
                                       $1500
                                     </span>
                                   </div>
