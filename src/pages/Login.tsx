@@ -13,7 +13,7 @@ export default function Login() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const success = login(email, password);
-    
+
     if (success) {
       const user = useAuthStore.getState().user;
       switch (user?.role) {

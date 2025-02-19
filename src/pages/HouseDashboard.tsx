@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 import { useGameStore } from '../store/games';
@@ -7,24 +7,23 @@ import {
   LogOut, 
   Plus, 
   TrendingUp, 
-  FolderRoot as Football, 
-  Baseline as Baseball, 
-  ShoppingBasket as Basketball, 
   Timer, 
   Activity, 
   CheckCircle2, 
   ArrowRight,
   Users,
   DollarSign,
-  Bell
+  Bell,
+  AlertTriangle
 } from 'lucide-react';
+import { MdSportsSoccer as Football, MdSportsBasketball as Basketball, MdSportsBaseball as Baseball } from "react-icons/md";
 import type { Game, League, BasketballOdds, BaseballOdds, FootballOdds } from '../types';
 import OddsForm from '../components/OddsForm';
 
 export default function HouseDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user, logout, isSubscriptionExpiringSoon } = useAuthStore();
   const { addGame, games, getMostBetGames } = useGameStore();
   const [leagues, setLeagues] = useState<League[]>([]);
   const [apiGames, setApiGames] = useState<ApiGame[]>([]);
@@ -114,9 +113,42 @@ export default function HouseDashboard() {
   }, {});
 
   const mostBetGames = getMostBetGames().slice(0, 5);
+  
+  // Calculate days until subscription expires
+  const getDaysUntilExpiration = () => {
+    if (!user?.subscriptionExpiresAt) return 0;
+    const expirationDate = new Date(user.subscriptionExpiresAt);
+    const today = new Date();
+    const diffTime = expirationDate.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Subscription Warning Banner */}
+      {user && isSubscriptionExpiringSoon(user) && (
+        <div className="bg-yellow-50 border-b border-yellow-200">
+          <div className="max-w-7xl mx-auto py-3 px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between flex-wrap">
+              <div className="flex items-center">
+                <AlertTriangle className="h-5 w-5 text-yellow-400 mr-3" />
+                <p className="text-yellow-700">
+                  <span className="font-medium">Subscription Notice:</span>
+                  {' '}Your subscription will expire in {getDaysUntilExpiration()} days.
+                </p>
+              </div>
+              <Link
+                to="/admin"
+                className="ml-6 font-medium text-yellow-600 hover:text-yellow-500"
+              >
+                Contact Admin <span aria-hidden="true">&rarr;</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
@@ -148,7 +180,7 @@ export default function HouseDashboard() {
                 <Link
                   to="/house/bets"
                   className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
-                    location.pathname === '/house/players/bets'
+                    location.pathname === '/house/bets'
                       ? 'text-indigo-600 bg-indigo-50'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
@@ -159,6 +191,9 @@ export default function HouseDashboard() {
               </div>
             </div>
             <div className="flex items-center">
+              <div className="mr-4 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                Expires: {new Date(user?.subscriptionExpiresAt || '').toLocaleDateString()}
+              </div>
               <span className="text-gray-700 mr-4">{user?.email}</span>
               <button
                 onClick={handleLogout}

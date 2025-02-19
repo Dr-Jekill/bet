@@ -11,9 +11,18 @@ interface AuthState {
   updateUser: (email: string, updates: Partial<User>) => void;
   getUsersByRole: (role: User['role']) => User[];
   getUsersByHouse: (houseId: string) => User[];
+  isSubscriptionExpired: (user: User) => boolean;
+  isSubscriptionExpiringSoon: (user: User) => boolean;
 }
 
-// Initial users
+// Helper function to add days to a date
+const addDays = (date: Date, days: number) => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+// Initial users with subscription dates
 const initialUsers: User[] = [
   { 
     email: 'admin@admin.cu', 
@@ -28,14 +37,16 @@ const initialUsers: User[] = [
     role: 'house', 
     name: 'House Manager',
     subscriptionPaid: true,
+    subscriptionExpiresAt: addDays(new Date(), 25).toISOString(), // Expires in 25 days
     createdAt: new Date().toISOString()
   },
   { 
     email: 'house2@game.cu', 
     password: 'house123', 
     role: 'house', 
-    name: 'House Manager',
+    name: 'House Manager 2',
     subscriptionPaid: false,
+    subscriptionExpiresAt: addDays(new Date(), -1).toISOString(), // Expired yesterday
     createdAt: new Date().toISOString()
   },
   { 
@@ -45,6 +56,15 @@ const initialUsers: User[] = [
     name: 'Test Player',
     balance: 1000,
     houseId: 'house@game.cu',
+    createdAt: new Date().toISOString()
+  },
+  { 
+    email: 'player2@user.cu', 
+    password: 'player123', 
+    role: 'player', 
+    name: 'Test Player2',
+    balance: 1000,
+    houseId: 'house2@game.cu',
     createdAt: new Date().toISOString()
   },
 ];
@@ -59,7 +79,9 @@ export const useAuthStore = create<AuthState>()(
           (u) => u.email === email && u.password === password
         );
         if (user) {
-          set({ user });
+          const newUser = { ...user };
+    console.log("Usuario guardado en Zustand:", newUser);
+    set({ user: newUser });
           return true;
         }
         return false;
@@ -86,7 +108,8 @@ export const useAuthStore = create<AuthState>()(
             balance: 0
           } : {}),
           ...(userData.role === 'house' ? {
-            subscriptionPaid: false
+            subscriptionPaid: false,
+            subscriptionExpiresAt: addDays(new Date(), 30).toISOString() // New houses get 30 days
           } : {})
         };
         
@@ -99,6 +122,10 @@ export const useAuthStore = create<AuthState>()(
           users: state.users.map((user) =>
             user.email === email ? { ...user, ...updates } : user
           ),
+          // Update current user if it's the one being modified
+          user: state.user?.email === email 
+            ? { ...state.user, ...updates }
+            : state.user
         }));
       },
       getUsersByRole: (role) => {
@@ -109,6 +136,16 @@ export const useAuthStore = create<AuthState>()(
           (user) => user.role === 'player' && user.houseId === houseId
         );
       },
+      isSubscriptionExpired: (user) => {
+        if (user.role !== 'house' || !user.subscriptionExpiresAt) return false;
+        return new Date(user.subscriptionExpiresAt) < new Date();
+      },
+      isSubscriptionExpiringSoon: (user) => {
+        if (user.role !== 'house' || !user.subscriptionExpiresAt) return false;
+        const expirationDate = new Date(user.subscriptionExpiresAt);
+        const warningDate = addDays(new Date(), 7); // Warning 7 days before expiration
+        return expirationDate <= warningDate && expirationDate > new Date();
+      }
     }),
     {
       name: 'auth-storage',

@@ -40,6 +40,23 @@ export default function AdminDashboard() {
   // Get houses with subscription due soon (example: within next 7 days)
   const housesWithDueSoon = houses.filter(house => !house.subscriptionPaid);
 
+  const handleToggleSubscription = (house: any) => {
+    const { updateUser } = useAuthStore.getState();
+    const updates = {
+      subscriptionPaid: !house.subscriptionPaid,
+      subscriptionExpiresAt: !house.subscriptionPaid 
+        ? addDays(new Date(), 30).toISOString() // If activating, add 30 days
+        : addDays(new Date(), -1).toISOString()  // If deactivating, set to yesterday
+    };
+    updateUser(house.email, updates);
+  };
+
+  const addDays = (date: Date, days: number) => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  };
+  
   return (
     <div className="min-h-screen bg-gray-100">
       <nav className="bg-white shadow-sm">
@@ -129,10 +146,7 @@ export default function AdminDashboard() {
                           <div className="mt-2 pt-2 border-t border-gray-100">
                             <button
                               className="w-full inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-yellow-400 to-red-500 hover:from-yellow-500 hover:to-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
-                              onClick={() => {
-                                const { updateUser } = useAuthStore.getState();
-                                updateUser(house.email, { subscriptionPaid: true });
-                              }}
+                              onClick={() => handleToggleSubscription(house)}
                             >
                               <DollarSign className="h-4 w-4 mr-1" />
                               Mark as Paid

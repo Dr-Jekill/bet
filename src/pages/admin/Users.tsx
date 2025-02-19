@@ -3,6 +3,12 @@ import { useAuthStore } from '../../store/auth';
 import { useGameStore } from '../../store/games';
 import { UserPlus, DollarSign, Building2 } from 'lucide-react';
 
+const addDays = (date: Date, days: number) => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
 export default function Users() {
   const [newUser, setNewUser] = useState({
     email: '',
@@ -27,6 +33,17 @@ export default function Users() {
   const houses = getUsersByRole('house');
   const players = getUsersByRole('player');
   const admins = getUsersByRole('admin');
+
+  const handleToggleSubscription = (house: any) => {
+    const { updateUser } = useAuthStore.getState();
+    const updates = {
+      subscriptionPaid: !house.subscriptionPaid,
+      subscriptionExpiresAt: !house.subscriptionPaid 
+        ? addDays(new Date(), 30).toISOString() // If activating, add 30 days
+        : addDays(new Date(), -1).toISOString()  // If deactivating, set to yesterday
+    };
+    updateUser(house.email, updates);
+  };
 
   return (
     <div className="px-4 py-6 sm:px-0">
@@ -101,6 +118,9 @@ export default function Users() {
                       <div>
                         <p className="font-medium text-gray-900">{house.name}</p>
                         <p className="text-sm text-gray-500">{house.email}</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Subscription expires: {new Date(house.subscriptionExpiresAt || '').toLocaleDateString()}
+                        </p>
                       </div>
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -127,12 +147,7 @@ export default function Users() {
                       </div>
                     </div>
                     <button
-                      onClick={() => {
-                        const { updateUser } = useAuthStore.getState();
-                        updateUser(house.email, {
-                          subscriptionPaid: !house.subscriptionPaid,
-                        });
-                      }}
+                      onClick={() => handleToggleSubscription(house)}
                       className="mt-2 inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     >
                       <DollarSign className="h-4 w-4 mr-1" />
