@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../../store/auth';
 import { useGameStore } from '../../store/games';
-import { DollarSign, FolderRoot as Football, Baseline as Baseball, ShoppingBasket as Basketball, Bell } from 'lucide-react';
-import type { Game, Bet } from '../../types';
+import { DollarSign, Bell } from 'lucide-react';
+import { MdSportsSoccer as Football, MdSportsBasketball as Basketball, MdSportsBaseball as Baseball } from "react-icons/md";
+import type { Game, Bet } from '../types';
 
 type PendingBet = {
   gameId: string;
-  type: 'fullGame';
+  type: 'Juego' | 'MT' | '1/4' | '5to';
   selection: Bet['selection'];
   amount: number;
   odds: number;
@@ -32,6 +33,11 @@ export default function PlayerGames() {
     }
   }, [games.length, lastGameCount]);
 
+  useEffect(() => {
+    const interval = setInterval(checkForNewGames, 5000);
+    return () => clearInterval(interval);
+  }, [checkForNewGames]);
+
   const handleViewNewGames = () => {
     setLastGameCount(games.length);
     setShowNewGamesNotification(false);
@@ -39,21 +45,31 @@ export default function PlayerGames() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    const interval = setInterval(checkForNewGames, 5000); // Check every 5 seconds
-    return () => clearInterval(interval);
-  }, [checkForNewGames]);
-
   const filteredGames = games.filter(game => 
     selectedSport === 'all' || game.sport === selectedSport
   );
 
-  const addToPendingBets = (bet: PendingBet) => {
-    setPendingBets([...pendingBets, bet]);
+  const addToPendingBets = (bet: Omit<PendingBet, 'amount'>, amount: number) => {
+    if (amount <= 0) return;
+    
+    setPendingBets(current => {
+      const existingBetIndex = current.findIndex(
+        b => b.gameId === bet.gameId && b.type === bet.type
+      );
+
+      if (existingBetIndex >= 0) {
+        const newBets = [...current];
+        newBets[existingBetIndex] = { ...bet, amount };
+        return newBets;
+      }
+      return [...current, { ...bet, amount }];
+    });
   };
 
-  const removePendingBet = (gameId: string) => {
-    setPendingBets(pendingBets.filter(bet => bet.gameId !== gameId));
+  const removePendingBet = (gameId: string, type: string) => {
+    setPendingBets(current => 
+      current.filter(bet => !(bet.gameId === gameId && bet.type === type))
+    );
   };
 
   const submitAllBets = () => {
@@ -81,6 +97,100 @@ export default function PlayerGames() {
   const getGameBetStatus = (gameId: string) => {
     const gameBet = userBets.find(bet => bet.gameId === gameId);
     return gameBet?.status;
+  };
+
+  const renderGameSection = (game: Game, type: PendingBet['type'], label: string) => {
+    const pendingBet = pendingBets.find(bet => bet.gameId === game.id && bet.type === type);
+    const betStatus = getGameBetStatus(game.id);
+
+    if (betStatus) return null;
+
+    return (
+      <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+              {game.sport}
+            </span>
+            <span className="text-sm font-medium">{label}</span>
+          </div>
+          <span className="text-sm text-gray-500">
+            {new Date(game.date).toLocaleString()}
+          </span>
+        </div>
+
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-sm">
+            <p className="font-medium">{game.homeTeam}</p>
+            <p className="text-gray-500">Home ({game.odds.fullGame.odds})</p>
+          </div>
+          <div className="text-sm text-right">
+            <p className="font-medium">{game.awayTeam}</p>
+            <p className="text-gray-500">Away ({game.odds.fullGame.odds})</p>
+          </div>
+        </div>
+
+        <div className="text-sm text-gray-500 mb-4">
+          <p>Alta/Baja: {game.odds.fullGame.overUnderValue}</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <select
+            onChange={(e) => {
+              const [selection, odds] = e.target.value.split('|');
+              addToPendingBets({
+                gameId: game.id,
+                type,
+                selection: selection as Bet['selection'],
+                odds: parseFloat(odds)
+              }, pendingBet?.amount || 10);
+            }}
+            value={pendingBet ? `${pendingBet.selection}|${pendingBet.odds}` : ""}
+            className="w-full text-sm border-gray-300 rounded-md"
+          >
+            <option value="">Select bet...</option>
+            <option value={`home|${game.odds.fullGame.odds}`}>
+              {game.homeTeam} ({game.odds.fullGame.odds})
+            </option>
+            <option value={`away|${game.odds.fullGame.odds}`}>
+              {game.awayTeam} ({game.odds.fullGame.odds})
+            </option>
+            <option value={`over/under|${game.odds.fullGame.odds}`}>
+              Over/Under {game.odds.fullGame.overUnderValue}
+            </option>
+          </select>
+
+          {pendingBet && (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="1"
+                value={pendingBet.amount}
+                onChange={(e) => {
+                  const amount = parseInt(e.target.value);
+                  if (!isNaN(amount)) {
+                    addToPendingBets({
+                      gameId: game.id,
+                      type,
+                      selection: pendingBet.selection,
+                      odds: pendingBet.odds
+                    }, amount);
+                  }
+                }}
+                className="w-full text-sm border-gray-300 rounded-md"
+                placeholder="Amount"
+              />
+              <button
+                onClick={() => removePendingBet(game.id, type)}
+                className="text-red-600 hover:text-red-800 p-2"
+              >
+                ×
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -152,106 +262,58 @@ export default function PlayerGames() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Games List */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2">
           {filteredGames.map((game) => {
             const betStatus = getGameBetStatus(game.id);
-            const pendingBet = pendingBets.find(bet => bet.gameId === game.id);
             const isNewGame = games.indexOf(game) >= lastGameCount;
 
+            if (betStatus) {
+              return (
+                <div key={game.id} className={`bg-white rounded-lg p-4 mb-4 border-l-4 ${
+                  betStatus === 'won' ? 'border-green-500' :
+                  betStatus === 'lost' ? 'border-red-500' :
+                  'border-yellow-500'
+                }`}>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                        {game.sport}
+                      </span>
+                      <h3 className="mt-2 font-medium">{game.homeTeam} vs {game.awayTeam}</h3>
+                    </div>
+                    <div className={`px-2 py-1 rounded text-xs font-medium ${
+                      betStatus === 'won' ? 'bg-green-100 text-green-800' :
+                      betStatus === 'lost' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {betStatus.toUpperCase()}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
             return (
-              <div
-                key={game.id}
-                className={`bg-white rounded-lg p-4 space-y-4 relative ${
-                  betStatus ? 'border-l-4 ' + (
-                    betStatus === 'won' ? 'border-green-500' :
-                    betStatus === 'lost' ? 'border-red-500' :
-                    'border-yellow-500'
-                  ) : ''
-                } ${isNewGame ? 'animate-pulse ring-2 ring-indigo-500' : ''}`}
-              >
-                {isNewGame && (
-                  <div className="absolute -top-2 -right-2 bg-indigo-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                    New
-                  </div>
+              <div key={game.id}>
+                {game.sport === 'basketball' && (
+                  <>
+                    {renderGameSection(game, 'Juego', 'Juego')}
+                    {renderGameSection(game, 'MT', 'Medio Tiempo')}
+                    {renderGameSection(game, '1/4', '1Q')}
+                  </>
                 )}
-
-                {betStatus && (
-                  <div className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium ${
-                    betStatus === 'won' ? 'bg-green-100 text-green-800' :
-                    betStatus === 'lost' ? 'bg-red-100 text-red-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {betStatus.toUpperCase()}
-                  </div>
+                {game.sport === 'baseball' && (
+                  <>
+                    {renderGameSection(game, 'Juego', 'Juego')}
+                    {renderGameSection(game, '5to', '5to')}
+                  </>
                 )}
-
-                <div className="flex justify-between items-center">
-                  <span className="px-2 py-1 text-xs font-medium rounded-full capitalize"
-                    style={{
-                      backgroundColor: '#E0F2FE',
-                      color: '#0369A1'
-                    }}
-                  >
-                    {game.sport}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    {new Date(game.date).toLocaleString()}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-2">
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="text-sm">
-                        <p className="font-medium">{game.homeTeam}</p>
-                        <p className="text-gray-500">Home ({game.odds.fullGame.home})</p>
-                      </div>
-                      <div className="text-sm text-right">
-                        <p className="font-medium">{game.awayTeam}</p>
-                        <p className="text-gray-500">Away ({game.odds.fullGame.away})</p>
-                      </div>
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      <p>Over/Under: {game.odds.fullGame.overUnderValue}</p>
-                      <p>Odds: {game.odds.fullGame.odds}</p>
-                    </div>
-                  </div>
-
-                  {!betStatus && (
-                    <div className="col-span-1">
-                      <div className="space-y-2">
-                        <select
-                          onChange={(e) => {
-                            const [selection, odds] = e.target.value.split('|');
-                            addToPendingBets({
-                              gameId: game.id,
-                              type: 'fullGame',
-                              selection: selection as Bet['selection'],
-                              amount: 10,
-                              odds: parseFloat(odds)
-                            });
-                          }}
-                          className="w-full text-sm border-gray-300 rounded-md"
-                          defaultValue=""
-                        >
-                          <option value="" disabled>Select bet...</option>
-                          <option value={`home|${game.odds.fullGame.odds}`}>
-                            Home ({game.odds.fullGame.odds})
-                          </option>
-                          <option value={`away|${game.odds.fullGame.odds}`}>
-                            Away ({game.odds.fullGame.odds})
-                          </option>
-                          <option value={`over|${game.odds.fullGame.odds}`}>
-                            Over {game.odds.fullGame.overUnderValue}
-                          </option>
-                          <option value={`under|${game.odds.fullGame.odds}`}>
-                            Under {game.odds.fullGame.overUnderValue}
-                          </option>
-                        </select>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {game.sport === 'football' && (
+                  <>
+                    {renderGameSection(game, 'Juego', 'Juego')}
+                    {renderGameSection(game, 'MT', 'Medio Tiempo')}
+                  </>
+                )}
               </div>
             );
           })}
@@ -274,8 +336,8 @@ export default function PlayerGames() {
                   if (!game) return null;
 
                   return (
-                    <div key={bet.gameId} className="border-b pb-4">
-                      <div className="flex justify-between items-start mb-2">
+                    <div key={`${bet.gameId}-${bet.type}`} className="border-b pb-4">
+                      <div className="flex justify-between items-start">
                         <div>
                           <p className="font-medium text-sm">{game.homeTeam} vs {game.awayTeam}</p>
                           <p className="text-sm text-gray-500">
@@ -283,7 +345,7 @@ export default function PlayerGames() {
                           </p>
                         </div>
                         <button
-                          onClick={() => removePendingBet(bet.gameId)}
+                          onClick={() => removePendingBet(bet.gameId, bet.type)}
                           className="text-red-600 hover:text-red-800"
                         >
                           ×
@@ -295,13 +357,14 @@ export default function PlayerGames() {
                           min="1"
                           value={bet.amount}
                           onChange={(e) => {
-                            const newAmount = parseInt(e.target.value);
-                            if (newAmount > 0) {
-                              setPendingBets(pendingBets.map(pb => 
-                                pb.gameId === bet.gameId 
-                                  ? { ...pb, amount: newAmount }
-                                  : pb
-                              ));
+                            const amount = parseInt(e.target.value);
+                            if (!isNaN(amount)) {
+                              addToPendingBets({
+                                gameId: bet.gameId,
+                                type: bet.type,
+                                selection: bet.selection,
+                                odds: bet.odds
+                              }, amount);
                             }
                           }}
                           className="w-full text-sm border-gray-300 rounded-md"

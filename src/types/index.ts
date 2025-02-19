@@ -68,7 +68,7 @@ export interface Bet {
   selection: 'home' | 'away' | 'over' | 'under';
   amount: number;
   odds: number;
-  status: 'pending' | 'won' | 'lost';
+  status: 'pending' | 'won' | 'lost' | 'draw';
   createdAt: string;
   settledAt?: string;
 }
